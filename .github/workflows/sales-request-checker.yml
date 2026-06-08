@@ -1,0 +1,40 @@
+name: 営業依頼チケット 情報不足自動チェック
+
+# Jira Automation から repository_dispatch で呼び出される。
+# 手動テスト用に workflow_dispatch も受け付ける。
+on:
+  repository_dispatch:
+    types: [jira-ticket-check]
+  workflow_dispatch:
+    inputs:
+      ticket_key:
+        description: "チェックするチケットキー（例: JPREQ-1234）"
+        required: true
+        type: string
+
+jobs:
+  check:
+    name: 情報不足チェック & Jiraコメント投稿
+    runs-on: ubuntu-latest
+    env:
+      JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+      JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: チケットキーを決定
+        id: ticket
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "key=${{ github.event.client_payload.ticket_key }}" >> $GITHUB_OUTPUT
+          else
+            echo "key=${{ inputs.ticket_key }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 情報不足チェック & コメント投稿
+        run: python3 sales_request_checker.py ${{ steps.ticket.outputs.key }} --post
