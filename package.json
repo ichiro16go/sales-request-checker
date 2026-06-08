@@ -1,0 +1,24 @@
+{
+  "name": "sales-request-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "review:issue": "node src/adapters/cli/review-issue.js",
+    "start:webhook": "node src/adapters/webhook/server.js",
+    "dev:panel": "vite",
+    "build:panel": "vite build",
+    "forge:deploy:dev": "forge deploy -e development",
+    "forge:deploy:prod": "forge deploy -e production"
+  },
+  "dependencies": {
+    "@forge/api": "^5.0.0",
+    "@forge/bridge": "^5.0.0",
+    "@forge/resolver": "^1.7.0"
+  },
+  "devDependencies": {
+    "@forge/cli": "^12.0.0",
+    "vite": "^7.0.0"
+  }
+}

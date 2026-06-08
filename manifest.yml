@@ -1,0 +1,37 @@
+modules:
+  trigger:
+    - key: issue-created-review-trigger
+      function: issue-created-review
+      events:
+        - avi:jira:created:issue
+  jira:issuePanel:
+    - key: sales-request-review-panel
+      resource: review-panel
+      resolver:
+        function: review-resolver
+      title: AI依頼レビュー
+      icon: https://developer.atlassian.com/platform/forge/images/icons/issue-panel-icon.svg
+  function:
+    - key: issue-created-review
+      handler: forge-index.onIssueCreated
+    - key: review-resolver
+      handler: forge-index.handler
+
+resources:
+  - key: review-panel
+    path: static/review-panel/dist
+
+permissions:
+  scopes:
+    - read:jira-work
+    - write:jira-work
+  external:
+    fetch:
+      backend:
+        - address: https://api.openai.com
+
+app:
+  runtime:
+    name: nodejs22.x
+  id: ari:cloud:ecosystem::app/0040952f-d9b3-4b55-9f22-f5f4002a7e9b
+  name: sales-request-assistant

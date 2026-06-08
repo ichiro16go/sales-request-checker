@@ -1,5 +1,6 @@
 name: 営業依頼チケット 情報不足自動チェック
 
+# Forge が使えない場合のサブプラン。
 # Jira Automation から repository_dispatch で呼び出される。
 # 手動テスト用に workflow_dispatch も受け付ける。
 on:
@@ -20,12 +21,17 @@ jobs:
       JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
       JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
       JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.2' }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: "3.12"
+          node-version: "22"
+
+      - name: テスト
+        run: npm test
 
       - name: チケットキーを決定
         id: ticket
@@ -37,4 +43,4 @@ jobs:
           fi
 
       - name: 情報不足チェック & コメント投稿
-        run: python3 sales_request_checker.py ${{ steps.ticket.outputs.key }} --post
+        run: npm run review:issue -- ${{ steps.ticket.outputs.key }} --post
