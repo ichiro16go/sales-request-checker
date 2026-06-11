@@ -33,7 +33,7 @@ export class JiraBasicClient {
   }
 
   async getIssue(key) {
-    const fields = ["summary", "description", "reporter", "priority", "duedate", "status", "issuelinks", "attachment"];
+    const fields = ["summary", "description", "issuetype", "reporter", "priority", "duedate", "status", "issuelinks", "attachment"];
     const data = await this.request("POST", "/rest/api/3/search/jql", {
       jql: `key = ${key}`,
       fields,

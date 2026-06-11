@@ -19,7 +19,7 @@ export function verdictLabel(verdict) {
 export async function reviewIssueSnapshot(snapshot, options = {}) {
   const ruleReview = analyzeIssue(snapshot);
   const fallbackQuestions = buildQuestions(ruleReview.missingItems);
-  const fallbackImprovedDescription = buildFallbackImprovedDescription(snapshot, fallbackQuestions);
+  const fallbackImprovedDescription = buildFallbackImprovedDescription(snapshot, fallbackQuestions, ruleReview.requestType);
 
   let ai = { enabled: false, provider: "none", promptVersion: PROMPT_VERSION };
   if (options.useAi !== false) {
@@ -44,6 +44,7 @@ export async function reviewIssueSnapshot(snapshot, options = {}) {
     marker: REVIEW_MARKER,
     reviewedAt: new Date().toISOString(),
     issueKey: snapshot.key,
+    requestType: ruleReview.requestType,
     verdict: ruleReview.verdict,
     verdictEmoji: verdictEmoji(ruleReview.verdict),
     verdictLabel: verdictLabel(ruleReview.verdict),
@@ -63,24 +64,39 @@ function statusMark(status) {
   return "N/A";
 }
 
+const REQUEST_TYPE_LABEL = { bug: "不具合", investigation: "調査", "data-extraction": "データ抽出", feature: "要望" };
+
 export function formatReviewComment(review) {
+  const typeLabel = REQUEST_TYPE_LABEL[review.requestType] || "依頼";
   const lines = [
     `${review.marker} ${review.reviewedAt}`,
     "",
-    `## AI依頼レビュー: ${review.verdictEmoji} ${review.verdictLabel}`,
+    `## ${review.verdictEmoji} ${review.verdictLabel}（${typeLabel}）`,
     review.reason,
     "",
   ];
 
+  // 改善案を最優先で表示（コピペ可能なコードブロック）
+  if (review.improvedDescription) {
+    lines.push("## 📝 依頼文の改善案（そのままコピーしてJiraに貼れます）");
+    lines.push("```");
+    lines.push(review.improvedDescription);
+    lines.push("```");
+    lines.push("");
+  }
+
+  // 不足情報の質問
   if (review.questions.length) {
-    lines.push("## 追記すると依頼が通りやすくなる情報");
+    lines.push("## ❓ 追記してほしい情報");
     for (const row of review.questions) {
       lines.push(`- **${row.label}**: ${row.question}`);
     }
     lines.push("");
   }
 
-  lines.push("## チェック結果");
+  // チェック詳細は折りたたみ
+  lines.push("<details><summary>チェック詳細</summary>");
+  lines.push("");
   for (const category of review.categories) {
     lines.push(`### ${category.title}`);
     for (const row of category.items) {
@@ -88,12 +104,8 @@ export function formatReviewComment(review) {
     }
     lines.push("");
   }
-
-  if (review.improvedDescription) {
-    lines.push("## 依頼文の改善案");
-    lines.push(review.improvedDescription);
-    lines.push("");
-  }
+  lines.push("</details>");
+  lines.push("");
 
   lines.push("---");
   lines.push(`promptVersion: ${review.ai.promptVersion || PROMPT_VERSION}`);
