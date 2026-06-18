@@ -4,6 +4,7 @@ import { normalizeIssue } from "../../core/checker.js";
 import { textToAdf } from "../../core/adf.js";
 import { isAllowedIssueKey } from "../../core/project-filter.js";
 import { formatReviewComment, reviewIssueSnapshot } from "../../core/review.js";
+import { searchSimilarIssues } from "../../core/similar-search.js";
 
 async function readJsonResponse(response) {
   const text = await response.text();
@@ -81,6 +82,15 @@ export const handler = makeResolver({
     if (!issueId) throw new Error("No issue context");
     const result = await runReview(issueId, { post: true });
     return result.review;
+  },
+  getSimilarIssues: async ({ context }) => {
+    const issueId = context?.extension?.issue?.id || context?.extension?.issue?.key;
+    if (!issueId) throw new Error("No issue context");
+    const issue = await getIssueByIdOrKey(issueId);
+    const snapshot = normalizeIssue(issue);
+    return await searchSimilarIssues(snapshot.key, snapshot, {
+      projectKey: (process.env.ALLOWED_PROJECT_KEYS || "JPREQ").split(",")[0].trim(),
+    });
   },
 });
 

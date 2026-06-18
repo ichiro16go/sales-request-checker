@@ -6,6 +6,9 @@ const questions = document.querySelector("#questions");
 const questionList = document.querySelector("#question-list");
 const improved = document.querySelector("#improved");
 const improvedText = document.querySelector("#improved-text");
+const similar = document.querySelector("#similar");
+const similarKeywords = document.querySelector("#similar-keywords");
+const similarList = document.querySelector("#similar-list");
 const refresh = document.querySelector("#refresh");
 const post = document.querySelector("#post");
 
@@ -58,3 +61,33 @@ async function postReview() {
 refresh.addEventListener("click", loadReview);
 post.addEventListener("click", postReview);
 loadReview();
+loadSimilarIssues();
+
+async function loadSimilarIssues() {
+  try {
+    const result = await invoke("getSimilarIssues");
+    renderSimilar(result);
+  } catch (error) {
+    console.warn("類似チケット検索エラー:", error);
+  }
+}
+
+function renderSimilar(result) {
+  if (!result?.issues?.length) {
+    similar.hidden = true;
+    return;
+  }
+  similar.hidden = false;
+  similarKeywords.textContent = `検索キーワード: ${result.keywords.join(", ")}`;
+  similarList.innerHTML = "";
+  for (const issue of result.issues) {
+    const li = document.createElement("li");
+    const link = document.createElement("a");
+    link.href = `/browse/${issue.key}`;
+    link.target = "_blank";
+    link.textContent = issue.key;
+    li.appendChild(link);
+    li.append(` ${issue.summary} [${issue.status}] (${issue.updated}) - ${issue.assignee}`);
+    similarList.appendChild(li);
+  }
+}

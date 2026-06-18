@@ -1,4 +1,4 @@
-import{g as ut}from"./index-DvIYKcMH.js";function ct($,M){for(var W=0;W<M.length;W++){const D=M[W];if(typeof D!="string"&&!Array.isArray(D)){for(const Q in D)if(Q!=="default"&&!(Q in $)){const ee=Object.getOwnPropertyDescriptor(D,Q);ee&&Object.defineProperty($,Q,ee.get?ee:{enumerable:!0,get:()=>D[Q]})}}}return Object.freeze(Object.defineProperty($,Symbol.toStringTag,{value:"Module"}))}var Ke={exports:{}},it;function ft(){return it||(it=1,(function($){console.info(`
+import{g as ut}from"./index-7wpdOufC.js";function ct($,M){for(var W=0;W<M.length;W++){const D=M[W];if(typeof D!="string"&&!Array.isArray(D)){for(const Q in D)if(Q!=="default"&&!(Q in $)){const ee=Object.getOwnPropertyDescriptor(D,Q);ee&&Object.defineProperty($,Q,ee.get?ee:{enumerable:!0,get:()=>D[Q]})}}}return Object.freeze(Object.defineProperty($,Symbol.toStringTag,{value:"Module"}))}var Ke={exports:{}},it;function ft(){return it||(it=1,(function($){console.info(`
 IFRAME-RESIZER
 
 Iframe-Resizer 5 is now available via the following two packages:
