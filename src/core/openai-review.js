@@ -1,5 +1,24 @@
 export const PROMPT_VERSION = "sales-request-review-2026-06-08";
 
+const DEFAULT_MAX_DESCRIPTION_CHARS = 8000;
+const MIN_ALLOWED_DESCRIPTION_CHARS = 4000;
+const MAX_ALLOWED_DESCRIPTION_CHARS = 8000;
+
+export function getMaxDescriptionChars(env = process.env) {
+  const raw = env?.MAX_DESCRIPTION_CHARS;
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_MAX_DESCRIPTION_CHARS;
+  if (n < MIN_ALLOWED_DESCRIPTION_CHARS) return MIN_ALLOWED_DESCRIPTION_CHARS;
+  if (n > MAX_ALLOWED_DESCRIPTION_CHARS) return MAX_ALLOWED_DESCRIPTION_CHARS;
+  return n;
+}
+
+export function truncateDescription(description, maxChars) {
+  const text = typeof description === "string" ? description : "";
+  if (text.length <= maxChars) return { text, truncated: false, originalLength: text.length };
+  return { text: text.slice(0, maxChars), truncated: true, originalLength: text.length };
+}
+
 function extractOutputText(response) {
   if (typeof response?.output_text === "string") return response.output_text;
   const chunks = [];
@@ -32,11 +51,15 @@ export async function runOpenAiReview(snapshot, ruleReview, env = process.env) {
   if (!apiKey) return { enabled: false, provider: "none", promptVersion: PROMPT_VERSION };
 
   const model = env.OPENAI_MODEL || "gpt-5.2";
+  const maxDescriptionChars = getMaxDescriptionChars(env);
+  const { text: descriptionForAi, truncated: descriptionTruncated, originalLength: originalDescriptionLength } =
+    truncateDescription(snapshot.description, maxDescriptionChars);
+
   const input = {
     issue: {
       key: snapshot.key,
       summary: snapshot.summary,
-      description: snapshot.description,
+      description: descriptionForAi,
       priority: snapshot.priority,
       dueDate: snapshot.dueDate,
       attachmentCount: snapshot.attachmentCount,
@@ -88,5 +111,8 @@ export async function runOpenAiReview(snapshot, ruleReview, env = process.env) {
     improvedDescription: typeof parsed.improvedDescription === "string" ? parsed.improvedDescription : "",
     reviewSummary: typeof parsed.reviewSummary === "string" ? parsed.reviewSummary : "",
     confidence: typeof parsed.confidence === "number" ? parsed.confidence : null,
+    descriptionTruncated,
+    originalDescriptionLength,
+    maxDescriptionChars,
   };
 }

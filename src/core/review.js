@@ -54,6 +54,9 @@ export async function reviewIssueSnapshot(snapshot, options = {}) {
     improvedDescription,
     categories: ruleReview.categories,
     ai,
+    descriptionTruncated: Boolean(ai.descriptionTruncated),
+    originalDescriptionLength: ai.originalDescriptionLength,
+    maxDescriptionChars: ai.maxDescriptionChars,
   };
 }
 
@@ -117,5 +120,11 @@ export function formatReviewComment(review) {
   lines.push("---");
   lines.push(`promptVersion: ${review.ai.promptVersion || PROMPT_VERSION}`);
   lines.push(`aiProvider: ${review.ai.provider || "none"}${review.ai.enabled ? "" : " (fallback)"}`);
+  if (review.descriptionTruncated) {
+    lines.push("");
+    lines.push(
+      `> ⚠️ 本 issue の description が上限（${review.maxDescriptionChars?.toLocaleString?.() ?? review.maxDescriptionChars} 文字）を超えたため、先頭部分のみ AI レビュー対象です。`,
+    );
+  }
   return lines.join("\n");
 }
