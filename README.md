@@ -50,6 +50,9 @@ OPENAI_API_KEY=sk-your-openai-api-key
 OPENAI_MODEL=gpt-5.2
 WEBHOOK_SHARED_SECRET=change-me
 ALLOWED_PROJECT_KEYS=JPREQ
+# コスト制御（任意。指定しない場合は既定値を使用）
+MAX_REVIEWS_PER_ISSUE_PER_DAY=5      # 1 issue あたりの AI レビュー上限/日（既定: 5）
+MAX_DESCRIPTION_CHARS=8000           # OpenAI に送る description の文字数上限（既定: 8000、許容範囲: 4000〜8000）
 ```
 
 現時点では暫定運用として個人アカウントのJira API tokenを利用してよい。ただし、正式運用前にサービスアカウントへ切り替えること。
@@ -103,6 +106,9 @@ OpenAI API keyはForge環境変数として設定します。
 npx forge variables set OPENAI_API_KEY --encrypt
 npx forge variables set OPENAI_MODEL gpt-5.2
 npx forge variables set ALLOWED_PROJECT_KEYS JPREQ
+# コスト制御（任意。既定値で運用したい場合は省略可）
+npx forge variables set MAX_REVIEWS_PER_ISSUE_PER_DAY 5
+npx forge variables set MAX_DESCRIPTION_CHARS 8000
 ```
 
 ### Linux GUIなし環境での `forge login` / `forge deploy` エラー対処
@@ -137,7 +143,21 @@ Forgeで使う機能:
 - `trigger`: Jira issue createdで自動レビュー
 - `jira:issuePanel`: Jiraチケット内にAI依頼レビュー画面を表示
 - `read:jira-work` / `write:jira-work`: チケット取得・コメント投稿
+- `storage:app`: 1 issue あたりの日次レビュー回数カウンタを Forge storage に保持（`MAX_REVIEWS_PER_ISSUE_PER_DAY`）
 - external egress: OpenAI API呼び出し
+
+## コスト制御
+
+詳細は [`docs/cost-control.md`](./docs/cost-control.md) を参照。主要な制御ノブは Forge variable で制御できる:
+
+| 変数 | 既定 | 範囲 | 説明 |
+|------|------|------|------|
+| `ALLOWED_PROJECT_KEYS` | `JPREQ` | カンマ区切り | レビュー対象の Jira プロジェクトキー |
+| `OPENAI_MODEL` | `gpt-5.2` | OpenAI モデル名 | コスト/品質トレードオフを切替 |
+| `MAX_REVIEWS_PER_ISSUE_PER_DAY` | `5` | 正の整数 | 同一 issue への AI レビュー上限（JST 日次でリセット） |
+| `MAX_DESCRIPTION_CHARS` | `8000` | 4000〜8000 | OpenAI に送る description の文字数上限。超過分は truncate + 警告 |
+
+緊急停止は `OPENAI_API_KEY` を unset（数分でルールベースに自動降格）または `ALLOWED_PROJECT_KEYS=""` で全停止。
 
 ### 実Jiraでdevelopment版だけを検証する手順
 
