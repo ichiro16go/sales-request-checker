@@ -76,6 +76,13 @@ export function formatReviewComment(review) {
     "",
   ];
 
+  if (review.quotaExceeded) {
+    lines.push(
+      `> ⚠️ 本日の再レビュー上限（${review.quota?.max ?? "?"} 回/日）に達したため、AI レビューは行わずルールベース判定のみ表示しています。明日リセットされます。`,
+    );
+    lines.push("");
+  }
+
   // 改善案を最優先で表示（コピペ可能なコードブロック）
   if (review.improvedDescription) {
     lines.push("## 📝 依頼文の改善案（そのままコピーしてJiraに貼れます）");

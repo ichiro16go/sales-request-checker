@@ -1,10 +1,16 @@
 import { makeResolver } from "@forge/resolver";
-import api, { route } from "@forge/api";
+import api, { route, storage } from "@forge/api";
 import { normalizeIssue } from "../../core/checker.js";
 import { textToAdf } from "../../core/adf.js";
 import { isAllowedIssueKey } from "../../core/project-filter.js";
 import { formatReviewComment, reviewIssueSnapshot } from "../../core/review.js";
 import { searchSimilarIssues } from "../../core/similar-search.js";
+import { checkQuota, incrementQuota, getMaxReviewsPerDay } from "../../core/review-quota.js";
+
+const forgeStorage = {
+  async get(key) { return await storage.get(key); },
+  async set(key, value) { return await storage.set(key, value); },
+};
 
 async function readJsonResponse(response) {
   const text = await response.text();
@@ -49,12 +55,28 @@ async function runReview(issueIdOrKey, { post = false } = {}) {
       posted: false,
     };
   }
+
+  const quota = await checkQuota(forgeStorage, snapshot.key, { env: process.env });
+  if (!quota.allowed) {
+    const review = await reviewIssueSnapshot(snapshot, { useAi: false });
+    review.quotaExceeded = true;
+    review.quota = { current: quota.current, max: quota.max };
+    const comment = formatReviewComment(review);
+    if (post) await postComment(snapshot.key, comment);
+    console.log(`Quota exceeded for ${snapshot.key}: ${quota.current}/${quota.max}`);
+    return { snapshot, review, comment, posted: post };
+  }
+
   const review = await reviewIssueSnapshot(snapshot, {
     env: {
       OPENAI_API_KEY: process.env.OPENAI_API_KEY,
       OPENAI_MODEL: process.env.OPENAI_MODEL,
+      MAX_DESCRIPTION_CHARS: process.env.MAX_DESCRIPTION_CHARS,
     },
   });
+  if (review.ai?.enabled) {
+    await incrementQuota(forgeStorage, snapshot.key, { env: process.env });
+  }
   const comment = formatReviewComment(review);
   if (post) await postComment(snapshot.key, comment);
   return { snapshot, review, comment, posted: post };
